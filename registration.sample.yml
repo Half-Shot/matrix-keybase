@@ -1,0 +1,10 @@
+id: "KeybaseBridge"
+url: "http://127.0.0.1:55441"
+as_token: "fooooo"
+hs_token: "baaaar"
+sender_localpart: "keybase"
+namespaces:
+  users:
+    - exclusive: true
+      regex: "@_kb_.*:mydomain"
+  rooms: []
