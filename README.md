@@ -12,7 +12,6 @@ A matrix <-> keybase bridge
 ```bash
 git clone git@github.com:Half-Shot/matrix-keybase.git
 cd matrix-keybase
-git checkout matrix-keybase
 yarn
 yarn build
 ```
