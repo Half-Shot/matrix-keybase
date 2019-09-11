@@ -63,3 +63,4 @@ typings/
 lib
 data.json
 
+tsconfig.tsbuildinfo
