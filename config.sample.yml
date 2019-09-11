@@ -1,0 +1,7 @@
+appservice:
+  bindAddress: "127.0.0.1"
+  port: 55441
+
+homeserver:
+  domain: "halfpint"
+  url: "http://localhost:8008"

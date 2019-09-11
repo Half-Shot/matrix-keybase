@@ -1,0 +1,23 @@
+{
+  "name": "matrix-keybase",
+  "version": "0.0.1",
+  "description": "A keybase bridge for matrix.",
+  "main": "./lib/app.js",
+  "repository": "git@github.com:Half-Shot/matrix-keybase.git",
+  "author": "Will Hunt <will@half-shot.uk>",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc --project ./tsconfig.json"
+  },
+  "dependencies": {
+    "@types/lowdb": "^1.0.9",
+    "@types/node": "^12.7.5",
+    "keybase-bot": "^3.0.0",
+    "matrix-bot-sdk": "^0.3.9",
+    "yaml": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/yaml": "^1.0.2",
+    "typescript": "^3.6.3"
+  }
+}
