@@ -34,12 +34,17 @@ export class KeybaseBridge {
             rooms: {},
             remoteRooms: {},
             userProfiles: {},
+            keybaseCreds: {},
         })
         this.as.botIntent.underlyingClient.setDisplayName("Keybase Bot");
         console.log("Started bridge on", this.config.appservice.bindAddress, this.config.appservice.port);
         this.as.on("room.invite", this.onRoomInvite.bind(this));
         this.as.on("room.message", this.onRoomMessage.bind(this));
         await this.as.begin();
+        const keybaseCreds = this.store.get("keybaseCreds").value();
+        for (const mxid of Object.keys(keybaseCreds)) {
+            await this.loginToKeybase(mxid);
+        }
     }
 
     private async loadConfig(configPath: string): Promise<IConfig> {
@@ -82,21 +87,16 @@ export class KeybaseBridge {
         if (bridgeEntry.type === "admin") {
             const parts = body.split(" ");
             if (parts[0] === "!login") {
-                const bot = new Keybase();
                 try {
-                    console.log("Connecting user", event.sender);
-                    await bot.init(parts[1], parts.slice(2).join(" "), {verbose: true});
-                    console.log("Logged in");
-                    await bot.chat.watchAllChannelsForNewMessages((msg: any) => {
-                        this.onKeybaseMessage(event.sender, msg);
-                    })
-                    console.log("Connected and watching");
+                    await this.store.set(`keybaseCreds.${event.sender}`, {
+                        username: parts[1],
+                        paperkey: parts.slice(2).join(" "),
+                    }).write();
+                    this.loginToKeybase(event.sender);
                 } catch (ex) {
-                    console.error("Failed to log in");
                     this.as.botIntent.sendText(roomId, "Failed to log in:" + ex, "m.notice");
                     return;
                 }
-                this.bots.set(event.sender, bot);
                 this.as.botIntent.sendText(roomId, "Connected.", "m.notice");
             } else {
                 this.as.botIntent.sendText(roomId, "Command not understood", "m.notice");
@@ -107,7 +107,11 @@ export class KeybaseBridge {
             }
             const bot = this.bots.get(event.sender);
             const opts = {conversationId: bridgeEntry.conversationId};
-            await bot.chat.send(undefined, {body}, opts).then(() => console.log('message sent!'));
+            try {
+                await bot.chat.send(undefined, {body}, opts).then(() => console.log('message sent!'));
+            } catch (ex) {
+                await this.as.getIntentForSuffix(bridgeEntry.otherUser).underlyingClient.sendNotice(roomId, "Could not send message:" + ex);
+            }
         }
     }
 
@@ -120,7 +124,7 @@ export class KeybaseBridge {
             roomId = await this.createPMRoom(matrixUser, messageSummary.sender.uid);
             console.log("Created PM room:", roomId);
             await this.store.set(`remoteRooms.${convo}`, { roomId }).write();
-            await this.store.set(`rooms.${roomId}`, {type: "convo", conversationId: convo}).write();
+            await this.store.set(`rooms.${roomId}`, {type: "convo", conversationId: convo, otherUser: messageSummary.sender.uid}).write();
         } else {
             roomId = existingRoom.roomId;
         }
@@ -137,12 +141,29 @@ export class KeybaseBridge {
     }
 
     private async createPMRoom(matrixUser: string, remoteUser: string) {
-        const remoteMatrixUser = this.as.getUserIdForSuffix(remoteUser);
         const intent = this.as.getIntentForSuffix(remoteUser);
         return await intent.underlyingClient.createRoom({
             preset: "private_chat",
             is_direct: true,
             invite: [matrixUser],
         });
+    }
+
+    private async loginToKeybase(matrixUser: string) {
+        if (this.bots.has(matrixUser)) {
+            return this.bots.get(matrixUser)!;
+        }
+        const keybaseCreds = this.store.get(`keybaseCreds.${matrixUser}`, null).value();
+        if (!keybaseCreds) {
+            throw Error("No credentials found");
+        }
+        const bot = new Keybase();
+        await bot.init(keybaseCreds.username, keybaseCreds.paperkey, { verbose: true }); 
+        console.log("Logged in");
+        await bot.chat.watchAllChannelsForNewMessages((msg: any) => {
+            this.onKeybaseMessage(matrixUser, msg);
+        })
+        console.log("Connected and watching");
+        this.bots.set(matrixUser, bot);
     }
 }
