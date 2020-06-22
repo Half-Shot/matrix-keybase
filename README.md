@@ -1,3 +1,7 @@
+# 🚨 Discontinued
+
+This project has been discontinued. [Zoom recently acquired Keybase](https://news.ycombinator.com/item?id=23102430) and interest in using Keybase as a secure messaging system has dried up. Rather than continuing work on a bridge, I'd suggest migrating to Matrix if possible.
+
 # matrix-keybase
 A matrix <-> keybase bridge
 
